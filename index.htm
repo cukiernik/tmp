@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Planning Poker</title>
   <style>
     body {
@@ -11,32 +11,49 @@
       margin: 0;
       padding: 0;
     }
+
     h1 {
       margin-top: 30px;
     }
+
     #table {
       position: relative;
-      width: 400px;
-      height: 200px;
+      width: 600px;
+      height: 300px;
       margin: 40px auto;
       background-color: #c3a56c;
       border: 4px solid #7b5e2c;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
-    .hidden-card {
-      position: absolute;
+
+    .hidden-card, .revealed-card {
       width: 70px;
       height: 100px;
-      background: repeating-linear-gradient(45deg, #999 0, #bbb 10px, #999 20px);
       border: 2px solid #444;
       border-radius: 8px;
+      position: absolute;
+    }
+
+    .hidden-card {
+      background: repeating-linear-gradient(45deg, #999 0, #bbb 10px, #999 20px);
       cursor: not-allowed;
     }
-    .top    { top: -50px; left: 50%; transform: translateX(-50%); }
-    .bottom { bottom: -50px; left: 50%; transform: translateX(-50%); }
-    .left   { top: 50%; left: -50px; transform: translateY(-50%); }
-    .right  { top: 50%; right: -50px; transform: translateY(-50%); }
+
+    .revealed-card {
+      background: #fff;
+      font-size: 24px;
+      font-weight: bold;
+      line-height: 100px;
+      text-align: center;
+      color: #222;
+      box-shadow: 0 0 8px rgba(0,0,0,0.4);
+    }
+
+    .top    { top: 0; left: 50%; transform: translate(-50%, 0); }
+    .bottom { bottom: 0; left: 50%; transform: translate(-50%, 0); }
+    .left   { top: 50%; left: 0; transform: translate(0, -50%); }
+    .right  { top: 50%; right: 0; transform: translate(0, -50%); }
 
     #cards {
       display: flex;
@@ -45,6 +62,7 @@
       margin-top: 100px;
       flex-wrap: wrap;
     }
+
     .card {
       width: 60px;
       height: 90px;
@@ -60,9 +78,11 @@
       z-index: 2;
       transition: transform 0.2s ease-out;
     }
+
     .card.returning {
       transition: transform 0.8s ease-in-out;
     }
+
     .floating-card {
       position: fixed;
       width: 60px;
@@ -78,19 +98,22 @@
       pointer-events: none;
       transition: top 0.6s ease-out, left 0.6s ease-out;
     }
-    .revealed-card {
-      width: 70px;
-      height: 100px;
+
+    .returning-card {
+      position: fixed;
+      width: 60px;
+      height: 90px;
       background: #fff;
-      border: 2px solid #222;
-      border-radius: 10px;
+      border: 2px solid #999;
+      border-radius: 8px;
       font-size: 24px;
       font-weight: bold;
-      line-height: 100px;
+      line-height: 90px;
       text-align: center;
-      color: #222;
-      box-shadow: 0 0 8px rgba(0,0,0,0.4);
-      position: absolute;
+      z-index: 999;
+      pointer-events: none;
+      transition: top 0.6s ease-in-out, left 0.6s ease-in-out;
+      opacity: 0.6;
     }
   </style>
 </head>
@@ -116,14 +139,15 @@
     const escapeCards = document.querySelectorAll('.card.escape');
     const allCards = document.querySelectorAll('.card');
     const bottomCard = document.getElementById('bottomCard');
+    let lastValue = null;
 
+    // Uciekające karty
     escapeCards.forEach(card => {
       let escaped = false;
       let canReact = true;
 
       card.addEventListener('mousemove', e => {
         if (!canReact || escaped) return;
-
         const rect = card.getBoundingClientRect();
         const dx = e.clientX - (rect.left + rect.width / 2);
         const dy = e.clientY - (rect.top + rect.height / 2);
@@ -156,9 +180,38 @@
       });
     });
 
+    // Animacja wyboru i powrotu poprzedniej karty
     allCards.forEach(card => {
       card.addEventListener('click', () => {
         const val = card.textContent;
+
+        // animacja powrotu poprzedniej
+        if (lastValue !== null && lastValue !== val) {
+          const cardToReturn = document.createElement('div');
+          cardToReturn.className = 'returning-card';
+          cardToReturn.textContent = lastValue;
+
+          const bottomRect = bottomCard.getBoundingClientRect();
+          const sourceRect = card.getBoundingClientRect();
+
+          cardToReturn.style.left = bottomRect.left + 'px';
+          cardToReturn.style.top = bottomRect.top + 'px';
+
+          document.body.appendChild(cardToReturn);
+
+          setTimeout(() => {
+            cardToReturn.style.left = sourceRect.left + 'px';
+            cardToReturn.style.top = sourceRect.top + 'px';
+          }, 10);
+
+          setTimeout(() => {
+            document.body.removeChild(cardToReturn);
+          }, 700);
+        }
+
+        lastValue = val;
+
+        // animacja przesunięcia nowej
         const rect = card.getBoundingClientRect();
         const targetRect = bottomCard.getBoundingClientRect();
 
